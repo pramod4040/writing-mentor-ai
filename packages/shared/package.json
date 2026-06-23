@@ -1,0 +1,74 @@
+{
+  "name": "@writer-mentor-ai/shared",
+  "version": "0.0.1",
+  "private": true,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./common": {
+      "types": "./dist/common/index.d.ts",
+      "import": "./dist/common/index.js",
+      "require": "./dist/common/index.js",
+      "default": "./dist/common/index.js"
+    },
+    "./_example": {
+      "types": "./dist/_example/index.d.ts",
+      "import": "./dist/_example/index.js",
+      "require": "./dist/_example/index.js",
+      "default": "./dist/_example/index.js"
+    },
+    "./mentor-type": {
+      "types": "./dist/mentor-type/index.d.ts",
+      "import": "./dist/mentor-type/index.js",
+      "require": "./dist/mentor-type/index.js",
+      "default": "./dist/mentor-type/index.js"
+    },
+    "./content": {
+      "types": "./dist/content/index.d.ts",
+      "import": "./dist/content/index.js",
+      "require": "./dist/content/index.js",
+      "default": "./dist/content/index.js"
+    },
+    "./ai-review": {
+      "types": "./dist/ai-review/index.d.ts",
+      "import": "./dist/ai-review/index.js",
+      "require": "./dist/ai-review/index.js",
+      "default": "./dist/ai-review/index.js"
+    },
+    "./stats": {
+      "types": "./dist/stats/index.d.ts",
+      "import": "./dist/stats/index.js",
+      "require": "./dist/stats/index.js",
+      "default": "./dist/stats/index.js"
+    },
+    "./practice-question": {
+      "types": "./dist/practice-question/index.d.ts",
+      "import": "./dist/practice-question/index.js",
+      "require": "./dist/practice-question/index.js",
+      "default": "./dist/practice-question/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "lint": "eslint src --max-warnings 0",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@nna/eslint-config": "workspace:*",
+    "@nna/tsconfig": "workspace:*",
+    "eslint": "^9.17.0",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}

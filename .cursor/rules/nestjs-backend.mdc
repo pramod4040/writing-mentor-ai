@@ -1,0 +1,15 @@
+---
+description: NestJS backend module patterns, Prisma, DTO rules
+globs: apps/api/**/*
+alwaysApply: false
+---
+
+# NestJS Backend Rules
+
+- Module structure: controller → service → repository
+- DTOs in `dto/` with class-validator + Swagger decorators
+- Prisma models in `prisma/schema.prisma` only — never in packages/shared
+- Services map entities to shared response types; strip passwordHash and secrets
+- Register new modules in `app.module.ts`
+- Copy patterns from `docs/patterns/crud-feature/` and `_example` module
+- Add unit tests in `__tests__/` alongside services

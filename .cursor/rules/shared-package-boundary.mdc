@@ -1,0 +1,20 @@
+---
+description: Security boundary for packages/shared — no DB models or secrets
+globs: packages/shared/**/*
+alwaysApply: false
+---
+
+# Shared Package Boundary
+
+ONLY place in monorepo for cross-app code sharing.
+
+**Allowed:** public TypeScript types, Zod schemas, enums, pagination utils, error shapes, safe formatting utils
+
+**Forbidden:**
+- @prisma/client, mongoose, @nestjs/*
+- passwordHash, tokens, API keys
+- Database repositories or entities
+- Auth guards/middleware
+- Backend env configs
+
+If you need a DB type, keep it in apps/api and expose a public response type here.

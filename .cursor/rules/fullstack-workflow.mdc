@@ -1,0 +1,15 @@
+---
+description: Full-stack agent orchestration and when to ask the user
+alwaysApply: true
+---
+
+# Full-Stack Workflow
+
+1. Read nna.config.yaml before any feature work
+2. For new features, act as Integration Orchestrator (see docs/agents/integration-orchestrator.md)
+3. Order: shared types → backend module → security review → frontend → security review → doctor
+4. **Ask user** when frontend route, admin vs public, or API-only scope is unclear
+5. Update nna.config.yaml features registry after completing a feature
+6. Run pnpm doctor and pnpm test before finishing
+
+No CLI generate commands — write code directly following docs/patterns/

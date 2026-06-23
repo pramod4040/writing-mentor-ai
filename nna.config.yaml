@@ -1,0 +1,46 @@
+project:
+  name: writer-mentor-ai
+  layout: turborepo
+  frameworkVersion: "1.0.0"
+backend:
+  path: ./apps/api
+  db: mongo
+  orm: mongoose
+frontend:
+  path: ./apps/web
+  ui: shadcn
+  state: tanstack-query
+shared:
+  path: ./packages/shared
+  packageName: "@writer-mentor-ai/shared"
+auth:
+  strategy: jwt
+features:
+  - name: _example
+    shared: packages/shared/src/_example
+    backend: apps/api/src/modules/_example
+    frontend:
+      hooks: apps/web/src/lib/hooks/use-example.ts
+      pages: apps/web/src/app/examples
+    openapi: /examples
+  - name: writing-mentor
+    shared:
+      - packages/shared/src/content
+      - packages/shared/src/mentor-type
+      - packages/shared/src/ai-review
+      - packages/shared/src/practice-question
+    backend:
+      - apps/api/src/modules/content
+      - apps/api/src/modules/mentor-type
+      - apps/api/src/modules/ai-review
+      - apps/api/src/modules/ai
+      - apps/api/src/modules/practice-question
+    frontend:
+      hooks:
+        - apps/web/src/lib/hooks/use-contents.ts
+        - apps/web/src/lib/hooks/use-practice-questions.ts
+      pages:
+        - apps/web/src/app/write
+        - apps/web/src/app/admin/mentor-types
+        - apps/web/src/app/(app)/ai-review
+    openapi: /contents, /mentor-types, /ai-reviews, /practice-questions

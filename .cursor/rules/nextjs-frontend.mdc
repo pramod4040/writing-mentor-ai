@@ -1,0 +1,15 @@
+---
+description: Next.js App Router, TanStack Query, shadcn/ui patterns
+globs: apps/web/**/*
+alwaysApply: false
+---
+
+# Next.js Frontend Rules
+
+- Import types/schemas from `@writer-mentor-ai/shared` only — never apps/api
+- Hooks in `src/lib/hooks/use-<feature>.ts` using TanStack Query
+- API calls via `@/lib/api/client` apiFetch helper
+- Forms: React Hook Form + shared Zod schemas
+- UI: shadcn/ui components in `src/components/ui/`
+- Pages in App Router `src/app/`
+- Ask user for route path if not specified

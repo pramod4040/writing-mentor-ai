@@ -1,0 +1,16 @@
+{
+  "extends": "@nna/tsconfig/nest.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src",
+    "baseUrl": ".",
+    "tsBuildInfoFile": "./dist/tsconfig.tsbuildinfo",
+    "paths": {
+      "@/*": ["src/*"],
+      "@writer-mentor-ai/shared": ["../../packages/shared/dist/index"],
+      "@writer-mentor-ai/shared/*": ["../../packages/shared/dist/*"]
+    }
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "test"]
+}

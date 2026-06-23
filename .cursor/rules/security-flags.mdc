@@ -1,0 +1,17 @@
+---
+description: Security patterns the Security Reviewer flags
+alwaysApply: true
+---
+
+# Security Flags
+
+Flag and fix these patterns:
+
+- passwordHash or tokens in packages/shared or API responses
+- Frontend importing apps/api or @prisma/client
+- Missing validation on POST/PATCH/PUT DTOs
+- Protected routes without JwtAuthGuard
+- NEXT_PUBLIC_ prefix missing on client-exposed env vars
+- Raw entity returned from controller (must use shared response type)
+
+Run pnpm doctor after fixes.
