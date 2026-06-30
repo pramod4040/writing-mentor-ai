@@ -6,10 +6,14 @@ import type {
   MentorTypeResponse,
 } from '@writer-mentor-ai/shared/mentor-type';
 import { DEFAULT_MENTOR_TYPES } from './mentor-type.seed';
+import { AppLoggerService } from '@/common/logging/app-logger.service';
 
 @Injectable()
 export class MentorTypeService implements OnModuleInit {
-  constructor(private readonly repository: MentorTypeRepository) {}
+  constructor(
+    private readonly repository: MentorTypeRepository,
+    private readonly logger: AppLoggerService,
+  ) {}
 
   async onModuleInit() {
     for (const seed of DEFAULT_MENTOR_TYPES) {
@@ -22,6 +26,7 @@ export class MentorTypeService implements OnModuleInit {
 
   async findAll(): Promise<MentorTypeResponse[]> {
     const items = await this.repository.findAll();
+    this.logger.info('Listed mentor types', 'MentorTypeService', { count: items.length });
     return items.map(toMentorTypeResponse);
   }
 

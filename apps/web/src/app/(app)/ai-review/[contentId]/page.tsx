@@ -8,6 +8,9 @@ import { ReviewCenterView } from '@/components/writing/review-center-view';
 import { ReviewVersionsPanel } from '@/components/writing/review-versions-panel';
 import { useContent } from '@/lib/hooks/use-contents';
 import { useAiReviews, useCreateAiReview } from '@/lib/hooks/use-ai-reviews';
+import { useAiReviewQuota } from '@/lib/hooks/use-ai-review-quota';
+import { formatAiReviewLimitError } from '@/lib/ai-review/quota-message';
+import { AiReviewQuotaBadge } from '@/components/writing/ai-review-quota-badge';
 import { useUiStore } from '@/lib/stores/ui-store';
 
 type AiReviewDetailProps = {
@@ -26,6 +29,9 @@ function AiReviewDetailContent({ contentId }: AiReviewDetailProps) {
   const { data: content, isLoading: contentLoading } = useContent(contentId);
   const { data: reviews = [], isLoading: reviewsLoading, refetch } = useAiReviews(contentId);
   const createReview = useCreateAiReview(contentId);
+  const { data: quota, isLoading: quotaLoading } = useAiReviewQuota();
+
+  const atReviewLimit = quota?.remaining === 0;
 
   const [selectedReviewId, setSelectedReviewId] = useState<string | null>(null);
   const [reviewError, setReviewError] = useState<string | null>(null);
@@ -69,7 +75,10 @@ function AiReviewDetailContent({ contentId }: AiReviewDetailProps) {
       updateReviewId(review.id);
       refetch();
     } catch (e) {
-      setReviewError(e instanceof Error ? e.message : 'Failed to generate AI review');
+      setReviewError(
+        formatAiReviewLimitError(e) ??
+          (e instanceof Error ? e.message : 'Failed to generate AI review'),
+      );
     }
   };
 
@@ -104,13 +113,14 @@ function AiReviewDetailContent({ contentId }: AiReviewDetailProps) {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="border-b border-[var(--border)] px-6 py-3">
+      <div className="border-b border-[var(--border)] px-6 py-3 flex flex-wrap items-center justify-between gap-3">
         <Link
           href="/ai-review"
           className="text-sm text-[var(--muted)] hover:text-[var(--foreground)]"
         >
           ← All content
         </Link>
+        <AiReviewQuotaBadge quota={quota} isLoading={quotaLoading} />
       </div>
 
       <ResizableSidebar
@@ -134,6 +144,12 @@ function AiReviewDetailContent({ contentId }: AiReviewDetailProps) {
           onSelectReview={handleSelectReview}
           onReviewAgain={handleReviewAgain}
           isReviewing={createReview.isPending}
+          reviewDisabled={atReviewLimit}
+          reviewDisabledReason={
+            atReviewLimit && quota?.resetsAt
+              ? `Next review available at ${new Date(quota.resetsAt).toLocaleString()}`
+              : undefined
+          }
         />
       </ResizableSidebar>
     </div>

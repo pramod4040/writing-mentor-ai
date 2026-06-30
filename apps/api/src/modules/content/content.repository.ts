@@ -14,6 +14,19 @@ export class ContentRepository {
     @InjectModel(ContentModel.name) private readonly contentModel: Model<ContentDocument>,
   ) {}
 
+  findAllByUserId(userId: string, skip: number, take: number) {
+    return this.contentModel
+      .find({ userId })
+      .skip(skip)
+      .limit(take)
+      .sort({ updatedAt: -1 })
+      .exec();
+  }
+
+  countByUserId(userId: string) {
+    return this.contentModel.countDocuments({ userId }).exec();
+  }
+
   findAll(skip: number, take: number) {
     return this.contentModel.find().skip(skip).limit(take).sort({ updatedAt: -1 }).exec();
   }

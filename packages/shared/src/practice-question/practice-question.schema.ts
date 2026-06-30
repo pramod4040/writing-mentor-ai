@@ -26,13 +26,13 @@ export const generatedPracticeQuestionSchema = z.object({
 });
 
 export const generatedPracticeQuestionsOutputSchema = z.object({
-  questions: z.array(generatedPracticeQuestionSchema).min(4),
+  questions: z.array(generatedPracticeQuestionSchema).min(6),
 });
 
 export const JSON_PRACTICE_QUESTIONS_INSTRUCTION = `
 Respond with valid JSON only. No markdown, no code fences, no extra text.
-Generate at least 4 practice questions using ONLY the allowed question types for this difficulty level.
-Use a balanced mix across the allowed types (not all the same type).
+Generate exactly 6 practice questions — one question per assigned type listed in the prompt.
+Use ONLY the assigned question types (do not add other types).
 
 Use exactly this structure:
 {
@@ -43,13 +43,22 @@ Use exactly this structure:
       "correctAnswer": "string",
       "timer": number (seconds, default 60),
       "options": ["string"] (required for mcq),
-      "metadata": object (optional; matching pairs as { "left1": "right1" }, cloze as { "blanks": ["answer1"] })
+      "metadata": object (optional)
     }
   ]
 }
 
-For matching, correctAnswer must be a JSON string of key-value pairs.
-For cloze_passage, include metadata.blanks with the ordered blank answers.
+Per-type rules:
+- mcq: include options array with 4 choices labeled A), B), C), D); correctAnswer is the letter (A, B, C, or D).
+- fill_blank: question contains a blank (_____ or similar); correctAnswer is the missing word or phrase.
+- true_false: correctAnswer must be "true" or "false".
+- sentence_correction: incorrect sentence must be SHORT (max 12 words); correctAnswer is the fully corrected sentence.
+- error_detection: question shows a sentence with one error; correctAnswer is the fully corrected sentence; metadata must include "error" (wrong word/phrase) and "correction" (replacement).
+- matching: metadata.pairs as [{ "left": "...", "right": "..." }]; correctAnswer is a JSON string of key-value pairs.
+- sentence_transformation: question gives rewrite instruction; correctAnswer is the transformed sentence.
+- cloze_passage: include metadata.blanks with ordered blank answers; correctAnswer is a JSON array string of answers.
+- short_answer: question asks for a brief response; correctAnswer is a model answer (1-2 sentences).
+
 Questions must relate to weaknesses and learning goals from the AI review context.
 `;
 

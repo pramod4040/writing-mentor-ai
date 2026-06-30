@@ -82,3 +82,4 @@ export class AiReviewModel {
 }
 
 export const AiReviewSchema = SchemaFactory.createForClass(AiReviewModel);
+AiReviewSchema.index({ userId: 1, createdAt: -1 });

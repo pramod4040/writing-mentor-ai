@@ -6,7 +6,11 @@ import type {
   SubmitPracticeAnswerResponse,
 } from '@writer-mentor-ai/shared/practice-question';
 import { Button } from '@/components/ui/button';
-import { PracticeQuestionInput, PracticeFeedback } from './practice-question-input';
+import {
+  PracticeQuestionInput,
+  PracticeFeedback,
+  getQuestionTypeLabel,
+} from './practice-question-input';
 import { useSubmitPracticeAnswer } from '@/lib/hooks/use-practice-questions';
 
 type PracticeSessionCardProps = {
@@ -22,7 +26,7 @@ export function PracticeSessionCard({
   total,
   onNext,
 }: PracticeSessionCardProps) {
-  const [answer, setAnswer] = useState(question.userAnswer ?? '');
+  const [answer, setAnswer] = useState('');
   const [secondsLeft, setSecondsLeft] = useState(question.timer);
   const [result, setResult] = useState<SubmitPracticeAnswerResponse | null>(null);
   const submit = useSubmitPracticeAnswer(question.id);
@@ -48,7 +52,7 @@ export function PracticeSessionCard({
     <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-sm">
       <div className="mb-4 flex items-center justify-between gap-3">
         <p className="text-sm text-[var(--muted)]">
-          Question {index + 1} of {total} · {question.questionType.replace(/_/g, ' ')}
+          Question {index + 1} of {total} · {getQuestionTypeLabel(question.questionType)}
         </p>
         <span
           className={
@@ -73,7 +77,7 @@ export function PracticeSessionCard({
 
       {timedOut && !result && (
         <p className="mt-3 text-sm text-amber-700 dark:text-amber-300">
-          Time&apos;s up — submit or skip.
+          Time&apos;s up — submit, skip, or continue typing.
         </p>
       )}
 
@@ -84,15 +88,27 @@ export function PracticeSessionCard({
             matchPercent={result.matchPercent}
             correctAnswer={result.correctAnswer}
             feedback={result.feedback}
+            questionType={question.questionType}
+            metadata={question.metadata}
           />
         </div>
       )}
 
       <div className="mt-6 flex gap-2">
         {!result ? (
-          <Button onClick={handleSubmit} disabled={submit.isPending || !answer.trim()}>
-            Submit answer
-          </Button>
+          <>
+            <Button onClick={handleSubmit} disabled={submit.isPending || !answer.trim()}>
+              Submit answer
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onNext}
+              disabled={submit.isPending}
+            >
+              Skip
+            </Button>
+          </>
         ) : (
           <Button onClick={onNext}>
             {index + 1 < total ? 'Next question' : 'Finish'}

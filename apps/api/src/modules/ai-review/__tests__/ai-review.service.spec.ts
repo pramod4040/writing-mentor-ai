@@ -1,10 +1,13 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ConfigService } from '@nestjs/config';
+import { HttpException, HttpStatus } from '@nestjs/common';
 import { AiReviewService } from '../ai-review.service';
 import { AiReviewRepository } from '../ai-review.repository';
+import { AiReviewQuotaService } from '../ai-review-quota.service';
 import { ContentService } from '../../content/content.service';
 import { MentorTypeService } from '../../mentor-type/mentor-type.service';
 import { AiService } from '../../ai/ai.service';
+
+const userId = 'user-1';
 
 const mockStructured = {
   overallScore: 6,
@@ -44,7 +47,11 @@ describe('AiReviewService', () => {
   const repository = {
     findByContentId: jest.fn(),
     create: jest.fn(),
-    count: jest.fn(),
+    countByUserId: jest.fn(),
+  };
+  const quotaService = {
+    assertWithinDailyLimit: jest.fn(),
+    getQuota: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -55,14 +62,12 @@ describe('AiReviewService', () => {
         { provide: ContentService, useValue: contentService },
         { provide: MentorTypeService, useValue: mentorTypeService },
         { provide: AiService, useValue: aiService },
-        {
-          provide: ConfigService,
-          useValue: { getOrThrow: jest.fn().mockReturnValue('demo-user') },
-        },
+        { provide: AiReviewQuotaService, useValue: quotaService },
       ],
     }).compile();
     service = module.get(AiReviewService);
     jest.clearAllMocks();
+    quotaService.assertWithinDailyLimit.mockResolvedValue(undefined);
   });
 
   it('generates review, stores record, and updates content', async () => {
@@ -85,7 +90,7 @@ describe('AiReviewService', () => {
       aiGeneratedReview: JSON.stringify(mockStructured),
       mentorTypeId: { toString: () => 'mentor-id' },
       mentorTypeName: 'IELTS',
-      userId: 'demo-user',
+      userId,
       overallScore: 6,
       estimatedBand: 6,
       scores: mockStructured.scores,
@@ -98,15 +103,16 @@ describe('AiReviewService', () => {
       updatedAt: now,
     });
 
-    const result = await service.generateReview('content-id', 'mentor-id');
+    const result = await service.generateReview('content-id', 'mentor-id', userId);
 
+    expect(quotaService.assertWithinDailyLimit).toHaveBeenCalledWith(userId);
     expect(aiService.generateReview).toHaveBeenCalledWith({
       systemPrompt: 'Evaluate IELTS',
       question: 'Write about accommodation',
       textContent: 'Hello world',
     });
     expect(repository.create).toHaveBeenCalled();
-    expect(contentService.recordAiReview).toHaveBeenCalledWith('content-id', 'Band 6');
+    expect(contentService.recordAiReview).toHaveBeenCalledWith('content-id', userId, 'Band 6');
     expect(result.estimatedBand).toBe(6);
     expect(result.mentorTypeName).toBe('IELTS');
   });
@@ -135,12 +141,12 @@ describe('AiReviewService', () => {
       aiGeneratedReview: JSON.stringify(mockStructured),
       mentorTypeId: { toString: () => 'mentor-id' },
       mentorTypeName: 'IELTS',
-      userId: 'demo-user',
+      userId,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
 
-    await service.generateReview('content-id', 'mentor-id', {
+    await service.generateReview('content-id', 'mentor-id', userId, {
       question: 'New question',
       textContent: 'New text',
     });
@@ -151,5 +157,28 @@ describe('AiReviewService', () => {
       question: 'New question',
       textContent: 'New text',
     });
+  });
+
+  it('does not call AI when daily limit is reached', async () => {
+    quotaService.assertWithinDailyLimit.mockRejectedValue(
+      new HttpException(
+        {
+          statusCode: HttpStatus.TOO_MANY_REQUESTS,
+          message: 'Daily AI review limit reached',
+          used: 3,
+          limit: 3,
+          resetsAt: '2026-06-25T10:00:00.000Z',
+        },
+        HttpStatus.TOO_MANY_REQUESTS,
+      ),
+    );
+
+    await expect(
+      service.generateReview('content-id', 'mentor-id', userId),
+    ).rejects.toBeInstanceOf(HttpException);
+
+    expect(contentService.findOne).not.toHaveBeenCalled();
+    expect(aiService.generateReview).not.toHaveBeenCalled();
+    expect(repository.create).not.toHaveBeenCalled();
   });
 });

@@ -6,9 +6,10 @@ export interface AiReviewInput {
 
 export interface AiPracticeQuestionsInput {
   practicePrompt: string;
-  aiGeneratedReview: string;
-  difficulty: string;
-  allowedTypes: string[];
+  aiGeneratedReview?: string;
+  // allowedTypes?: string[];
+  mistakes?: object;
+  feedback?: string[]
 }
 
 export interface AiGradePracticeAnswerInput {

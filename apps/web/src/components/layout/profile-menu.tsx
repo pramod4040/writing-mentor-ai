@@ -1,27 +1,16 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Moon, Sun, User } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Select } from '@/components/ui/select';
-import { Label } from '@/components/ui/label';
-import { useUiStore } from '@/lib/stores/ui-store';
-import { useMentorTypes } from '@/lib/hooks/use-mentor-types';
+import Link from 'next/link';
+import type { Route } from 'next';
+import { LogOut, Settings } from 'lucide-react';
+import { useAuth } from '@/lib/hooks/use-auth';
+import { UserAvatar } from '@/components/auth/user-avatar';
 
 export function ProfileMenu() {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  const defaultMentorTypeId = useUiStore((s) => s.defaultMentorTypeId);
-  const setDefaultMentorTypeId = useUiStore((s) => s.setDefaultMentorTypeId);
-  const { data: mentorTypes } = useMentorTypes();
-
-  useEffect(() => {
-    if (!mentorTypes?.length) return;
-    if (!defaultMentorTypeId) {
-      const ielts = mentorTypes.find((t) => t.name === 'IELTS');
-      setDefaultMentorTypeId(ielts?.id ?? mentorTypes[0].id);
-    }
-  }, [mentorTypes, defaultMentorTypeId, setDefaultMentorTypeId]);
+  const { user, logout } = useAuth();
 
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
@@ -31,39 +20,44 @@ export function ProfileMenu() {
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
 
+  if (!user) return null;
+
   return (
     <div className="relative" ref={ref}>
-      <Button
-        variant="outline"
-        size="sm"
-        className="h-9 w-9 rounded-full p-0"
+      <button
+        type="button"
+        className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
         onClick={() => setOpen((o) => !o)}
         aria-label="Profile menu"
       >
-        <User className="h-4 w-4" />
-      </Button>
+        <UserAvatar name={user.name} image={user.image} size="sm" />
+      </button>
       {open && (
         <div
           className="absolute right-0 top-full z-50 mt-2 w-64 rounded-lg border border-[var(--border)] bg-[var(--card)] p-4 shadow-lg"
         >
-          <p className="text-base font-medium">Demo User</p>
-          <p className="text-sm text-[var(--muted)]">demo-user</p>
+          <p className="text-base font-medium">{user.name}</p>
+          <p className="text-sm text-[var(--muted)]">{user.email}</p>
           <div className="mt-4 space-y-2">
-            <Label htmlFor="default-mentor">Default review type</Label>
-            <Select
-              id="default-mentor"
-              value={defaultMentorTypeId ?? ''}
-              onChange={(e) => setDefaultMentorTypeId(e.target.value)}
+            <Link
+              href={'/settings' as Route}
+              className="flex items-center gap-2 rounded-md px-2 py-2 text-sm hover:bg-[var(--background)]"
+              onClick={() => setOpen(false)}
             >
-              {mentorTypes?.map((type) => (
-                <option key={type.id} value={type.id}>
-                  {type.name}
-                </option>
-              ))}
-            </Select>
-            <p className="text-sm text-[var(--muted)]">
-              Used for all AI reviews until you change it here.
-            </p>
+              <Settings className="h-4 w-4" />
+              Settings
+            </Link>
+            <button
+              type="button"
+              className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-sm hover:bg-[var(--background)]"
+              onClick={() => {
+                setOpen(false);
+                logout();
+              }}
+            >
+              <LogOut className="h-4 w-4" />
+              Sign out
+            </button>
           </div>
         </div>
       )}
@@ -71,19 +65,4 @@ export function ProfileMenu() {
   );
 }
 
-export function ThemeToggle() {
-  const theme = useUiStore((s) => s.theme);
-  const toggleTheme = useUiStore((s) => s.toggleTheme);
-
-  return (
-    <Button
-      variant="outline"
-      size="sm"
-      className="h-9 w-9 p-0"
-      onClick={toggleTheme}
-      aria-label="Toggle theme"
-    >
-      {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-    </Button>
-  );
-}
+export { ThemeToggle } from './profile-menu-theme';

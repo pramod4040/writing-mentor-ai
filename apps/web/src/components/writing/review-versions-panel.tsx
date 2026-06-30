@@ -10,6 +10,8 @@ type ReviewVersionsPanelProps = {
   onSelectReview: (reviewId: string) => void;
   onReviewAgain?: () => void;
   isReviewing?: boolean;
+  reviewDisabled?: boolean;
+  reviewDisabledReason?: string;
 };
 
 export function ReviewVersionsPanel({
@@ -18,6 +20,8 @@ export function ReviewVersionsPanel({
   onSelectReview,
   onReviewAgain,
   isReviewing,
+  reviewDisabled,
+  reviewDisabledReason,
 }: ReviewVersionsPanelProps) {
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -61,7 +65,12 @@ export function ReviewVersionsPanel({
 
       {onReviewAgain && (
         <div className="border-t border-[var(--border)] p-4">
-          <Button className="w-full" onClick={onReviewAgain} disabled={isReviewing}>
+          <Button
+            className="w-full"
+            onClick={onReviewAgain}
+            disabled={isReviewing || reviewDisabled}
+            title={reviewDisabledReason}
+          >
             {isReviewing ? 'Reviewing…' : 'Generate new review'}
           </Button>
         </div>

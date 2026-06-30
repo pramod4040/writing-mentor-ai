@@ -5,6 +5,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 import { JwtStrategy } from './jwt.strategy';
 import { AuthController } from './auth.controller';
+import { UsersController } from './users.controller';
 import { AuthService } from './auth.service';
 import { UserModel, UserSchema } from './schemas/user.schema';
 
@@ -23,7 +24,7 @@ import { UserModel, UserSchema } from './schemas/user.schema';
       }),
     }),
   ],
-  controllers: [AuthController],
+  controllers: [AuthController, UsersController],
   providers: [AuthService, JwtStrategy],
   exports: [AuthService, JwtModule],
 })

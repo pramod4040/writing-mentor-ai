@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { generateShortName } from '@writer-mentor-ai/shared/common';
 import type { AiReviewResponse } from '@writer-mentor-ai/shared/ai-review';
 import type { SaveAndReviewInput, SaveAndReviewResponse } from '@writer-mentor-ai/shared/content';
@@ -7,6 +6,7 @@ import { AiReviewRepository, toAiReviewResponse } from './ai-review.repository';
 import { ContentService } from '../content/content.service';
 import { MentorTypeService } from '../mentor-type/mentor-type.service';
 import { AiService } from '../ai/ai.service';
+import { AiReviewQuotaService } from './ai-review-quota.service';
 
 type ContentUpdateBeforeReview = {
   question?: string;
@@ -20,11 +20,11 @@ export class AiReviewService {
     private readonly contentService: ContentService,
     private readonly mentorTypeService: MentorTypeService,
     private readonly aiService: AiService,
-    private readonly config: ConfigService,
+    private readonly quotaService: AiReviewQuotaService,
   ) {}
 
-  async findByContentId(contentId: string): Promise<AiReviewResponse[]> {
-    await this.contentService.findOne(contentId);
+  async findByContentId(contentId: string, userId: string): Promise<AiReviewResponse[]> {
+    await this.contentService.findOne(contentId, userId);
     const items = await this.repository.findByContentId(contentId);
     return items.map(toAiReviewResponse);
   }
@@ -32,15 +32,18 @@ export class AiReviewService {
   async generateReview(
     contentId: string,
     mentorTypeId: string,
+    userId: string,
     contentUpdate?: ContentUpdateBeforeReview,
   ): Promise<AiReviewResponse> {
-    let content = await this.contentService.findOne(contentId);
+    await this.quotaService.assertWithinDailyLimit(userId);
+
+    let content = await this.contentService.findOne(contentId, userId);
 
     if (contentUpdate?.question || contentUpdate?.textContent) {
       const shortName = generateShortName(
         contentUpdate.textContent ?? content.textContent,
       );
-      content = await this.contentService.update(contentId, {
+      content = await this.contentService.update(contentId, userId, {
         shortName,
         question: contentUpdate.question ?? content.question,
         textContent: contentUpdate.textContent ?? content.textContent,
@@ -55,7 +58,6 @@ export class AiReviewService {
       textContent: content.textContent,
     });
 
-    const userId = this.config.getOrThrow<string>('DEFAULT_USER_ID');
     const feedbackSummary = `Band ${structured.estimatedBand}`;
 
     const review = await this.repository.create({
@@ -68,30 +70,34 @@ export class AiReviewService {
       structured,
     });
 
-    await this.contentService.recordAiReview(contentId, feedbackSummary);
+    await this.contentService.recordAiReview(contentId, userId, feedbackSummary);
 
     return toAiReviewResponse(review);
   }
 
-  async saveAndReview(input: SaveAndReviewInput): Promise<SaveAndReviewResponse> {
+  async saveAndReview(userId: string, input: SaveAndReviewInput): Promise<SaveAndReviewResponse> {
     const shortName = generateShortName(input.textContent);
     const content = input.contentId
-      ? await this.contentService.update(input.contentId, {
+      ? await this.contentService.update(input.contentId, userId, {
           shortName,
           question: input.question,
           textContent: input.textContent,
         })
-      : await this.contentService.create({
+      : await this.contentService.create(userId, {
           shortName,
           question: input.question,
           textContent: input.textContent,
         });
 
-    const review = await this.generateReview(content.id, input.mentorTypeId);
+    const review = await this.generateReview(content.id, input.mentorTypeId, userId);
     return { content, review };
   }
 
-  async count(): Promise<number> {
-    return this.repository.count();
+  async countByUserId(userId: string): Promise<number> {
+    return this.repository.countByUserId(userId);
+  }
+
+  getQuota(userId: string) {
+    return this.quotaService.getQuota(userId);
   }
 }

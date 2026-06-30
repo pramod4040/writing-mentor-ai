@@ -1,12 +1,35 @@
 import { mkdtemp, readFile } from 'fs/promises';
 import { join } from 'path';
 import { tmpdir } from 'os';
+import { resolveLogFilePath } from '../logging.config';
 import { shouldLog } from '../log-level';
 import { AppLoggerService } from '../app-logger.service';
 import { FileLogTransport } from '../transports/file-log-transport';
 import { CompositeLogTransport } from '../transports/composite-log-transport';
 import { ConsoleLogTransport } from '../transports/console-log-transport';
 import type { LogEntry } from '../log-entry.type';
+
+describe('resolveLogFilePath', () => {
+  it('keeps absolute paths unchanged', () => {
+    expect(resolveLogFilePath('/var/log/api.log')).toBe('/var/log/api.log');
+  });
+
+  it('resolves under apps/api when cwd is monorepo root', () => {
+    const cwdSpy = jest.spyOn(process, 'cwd').mockReturnValue('/repo/writer-mentor-ai');
+    expect(resolveLogFilePath('logs/api.log')).toBe(
+      join('/repo/writer-mentor-ai', 'apps/api', 'logs/api.log'),
+    );
+    cwdSpy.mockRestore();
+  });
+
+  it('uses cwd when already in apps/api', () => {
+    const cwdSpy = jest.spyOn(process, 'cwd').mockReturnValue('/repo/writer-mentor-ai/apps/api');
+    expect(resolveLogFilePath('logs/api.log')).toBe(
+      join('/repo/writer-mentor-ai/apps/api', 'logs/api.log'),
+    );
+    cwdSpy.mockRestore();
+  });
+});
 
 describe('shouldLog', () => {
   it('filters below minimum level', () => {

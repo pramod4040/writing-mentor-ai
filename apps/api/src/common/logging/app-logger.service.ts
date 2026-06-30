@@ -4,19 +4,27 @@ import type { Env } from '../../config/env.schema';
 import type { LogLevel } from './log-level';
 import { shouldLog } from './log-level';
 import type { LogEntry } from './log-entry.type';
-import { createLogTransports } from './logging.config';
+import { createLogTransports, resolveLogFilePath } from './logging.config';
 import type { LogTransport } from './log-transport.interface';
 
 @Injectable()
 export class AppLoggerService implements LoggerService {
   private readonly minLevel: LogLevel;
   private readonly transport: LogTransport;
+  readonly resolvedLogFilePath: string;
 
   constructor(private readonly config: ConfigService<Env, true>) {
     this.minLevel = this.config.get('LOG_LEVEL', { infer: true });
+    const filePath = this.config.get('LOG_FILE_PATH', { infer: true });
+    this.resolvedLogFilePath = resolveLogFilePath(filePath);
     this.transport = createLogTransports({
       output: this.config.get('LOG_OUTPUT', { infer: true }),
-      filePath: this.config.get('LOG_FILE_PATH', { infer: true }),
+      filePath,
+    });
+    this.info('AppLogger initialized', 'AppLoggerService', {
+      logLevel: this.minLevel,
+      logOutput: this.config.get('LOG_OUTPUT', { infer: true }),
+      logFilePath: this.resolvedLogFilePath,
     });
   }
 
@@ -78,6 +86,9 @@ export class AppLoggerService implements LoggerService {
       ...(meta && Object.keys(meta).length > 0 ? { meta } : {}),
     };
 
-    void this.transport.write(entry);
+    void Promise.resolve(this.transport.write(entry)).catch((err: unknown) => {
+      const message = err instanceof Error ? err.message : String(err);
+      process.stderr.write(`Failed to write log entry: ${message}\n`);
+    });
   }
 }

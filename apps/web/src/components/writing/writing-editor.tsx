@@ -10,6 +10,9 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useCreateContent, useUpdateContent } from '@/lib/hooks/use-contents';
 import { useSaveAndReview } from '@/lib/hooks/use-ai-reviews';
+import { useAiReviewQuota } from '@/lib/hooks/use-ai-review-quota';
+import { AiReviewQuotaBadge } from '@/components/writing/ai-review-quota-badge';
+import { formatAiReviewLimitError } from '@/lib/ai-review/quota-message';
 import {
   MAX_FONT_SIZE,
   MIN_FONT_SIZE,
@@ -39,6 +42,9 @@ export function WritingEditor({
   const createContent = useCreateContent();
   const updateContent = useUpdateContent(selectedContent?.id ?? 'new');
   const saveAndReview = useSaveAndReview();
+  const { data: quota, isLoading: quotaLoading } = useAiReviewQuota();
+
+  const atReviewLimit = quota?.remaining === 0;
 
   useEffect(() => {
     if (selectedContent) {
@@ -88,7 +94,7 @@ export function WritingEditor({
       onSaved?.(result.content);
       router.push(`/ai-review/${result.content.id}`);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to generate AI review');
+      setError(formatAiReviewLimitError(e) ?? (e instanceof Error ? e.message : 'Failed to generate AI review'));
     }
   };
 
@@ -159,9 +165,12 @@ export function WritingEditor({
         <div
           className="sticky bottom-0 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--border)] bg-[var(--card)]/95 px-5 py-4 backdrop-blur-sm"
         >
-          <span className="rounded-full bg-[var(--accent-soft)] px-3 py-1 text-sm text-[var(--muted)]">
-            {wordCount} words
-          </span>
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="rounded-full bg-[var(--accent-soft)] px-3 py-1 text-sm text-[var(--muted)]">
+              {wordCount} words
+            </span>
+            <AiReviewQuotaBadge quota={quota} isLoading={quotaLoading} />
+          </div>
           <div className="flex flex-wrap gap-2">
             {selectedContent && (
               <Button variant="outline" onClick={onNew}>
@@ -177,7 +186,17 @@ export function WritingEditor({
             <Button
               variant="outline"
               onClick={handleAiReview}
-              disabled={isReviewing || !question.trim() || !textContent.trim()}
+              disabled={
+                isReviewing ||
+                atReviewLimit ||
+                !question.trim() ||
+                !textContent.trim()
+              }
+              title={
+                atReviewLimit && quota?.resetsAt
+                  ? `Next review available at ${new Date(quota.resetsAt).toLocaleString()}`
+                  : undefined
+              }
             >
               {isReviewing ? 'Reviewing…' : 'AI Review'}
             </Button>

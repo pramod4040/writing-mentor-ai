@@ -1,11 +1,14 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { PracticeQuestionService } from '../practice-question.service';
 import { PracticeQuestionRepository } from '../practice-question.repository';
 import { AiReviewRepository } from '../../ai-review/ai-review.repository';
+import { ContentService } from '../../content/content.service';
 import { MentorTypeService } from '../../mentor-type/mentor-type.service';
 import { AiService } from '../../ai/ai.service';
+import { AppLoggerService } from '@/common/logging/app-logger.service';
+
+const userId = 'user-1';
 
 describe('PracticeQuestionService', () => {
   let service: PracticeQuestionService;
@@ -18,12 +21,13 @@ describe('PracticeQuestionService', () => {
     updateAfterSubmit: jest.fn(),
   };
   const aiReviewRepository = { findById: jest.fn() };
+  const contentService = { findOne: jest.fn() };
   const mentorTypeService = { findOne: jest.fn() };
   const aiService = {
     generatePracticeQuestions: jest.fn(),
     gradePracticeAnswer: jest.fn(),
   };
-  const config = { getOrThrow: jest.fn().mockReturnValue('demo-user') };
+  const logger = { info: jest.fn(), logError: jest.fn(), error: jest.fn() };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -31,9 +35,10 @@ describe('PracticeQuestionService', () => {
         PracticeQuestionService,
         { provide: PracticeQuestionRepository, useValue: repository },
         { provide: AiReviewRepository, useValue: aiReviewRepository },
+        { provide: ContentService, useValue: contentService },
         { provide: MentorTypeService, useValue: mentorTypeService },
         { provide: AiService, useValue: aiService },
-        { provide: ConfigService, useValue: config },
+        { provide: AppLoggerService, useValue: logger },
       ],
     }).compile();
     service = module.get(PracticeQuestionService);
@@ -48,34 +53,17 @@ describe('PracticeQuestionService', () => {
       estimatedBand: 6,
       aiGeneratedReview: '{"summary":{}}',
     });
+    contentService.findOne.mockResolvedValue({ id: 'content-id' });
     mentorTypeService.findOne.mockResolvedValue({
       practicePrompt: 'Write about technology.',
     });
     aiService.generatePracticeQuestions.mockResolvedValue([
-      {
-        questionType: 'sentence_correction',
-        question: 'Fix the sentence.',
-        correctAnswer: 'He goes to school.',
-        timer: 60,
-      },
-      {
-        questionType: 'error_detection',
-        question: 'Find the error.',
-        correctAnswer: 'Correct version.',
-        timer: 60,
-      },
-      {
-        questionType: 'matching',
-        question: 'Match pairs.',
-        correctAnswer: JSON.stringify({ a: 'b' }),
-        timer: 60,
-      },
-      {
-        questionType: 'sentence_correction',
-        question: 'Fix again.',
-        correctAnswer: 'She runs fast.',
-        timer: 60,
-      },
+      { questionType: 'sentence_correction', question: 'Fix the sentence.', correctAnswer: 'He goes to school.', timer: 60 },
+      { questionType: 'error_detection', question: 'Find the error.', correctAnswer: 'Correct version.', timer: 60 },
+      { questionType: 'matching', question: 'Match pairs.', correctAnswer: JSON.stringify({ a: 'b' }), timer: 60 },
+      { questionType: 'mcq', question: 'Pick one.', correctAnswer: 'A', timer: 60, options: ['A) one', 'B) two'] },
+      { questionType: 'fill_blank', question: 'Fill ____.', correctAnswer: 'in', timer: 60 },
+      { questionType: 'true_false', question: 'True?', correctAnswer: 'true', timer: 60 },
     ]);
     repository.createMany.mockResolvedValue([
       {
@@ -87,7 +75,7 @@ describe('PracticeQuestionService', () => {
         difficultyLevel: 'intermediate',
         aiReviewId: { toString: () => 'review-id' },
         contentId: { toString: () => 'content-id' },
-        userId: 'demo-user',
+        userId,
         isSolved: false,
         numAttempt: 0,
         timer: 60,
@@ -98,10 +86,14 @@ describe('PracticeQuestionService', () => {
       },
     ]);
 
-    const result = await service.generateForReview('review-id');
+    const result = await service.generateForReview('review-id', userId);
     expect(result.difficulty).toBe('intermediate');
     expect(repository.deleteByAiReviewId).toHaveBeenCalledWith('review-id');
-    expect(aiService.generatePracticeQuestions).toHaveBeenCalled();
+    expect(aiService.generatePracticeQuestions).toHaveBeenCalledWith(
+      expect.objectContaining({
+        practicePrompt: 'Write about technology.',
+      }),
+    );
   });
 
   it('submits structured answer with fuzzy grading and always returns correct answer', async () => {
@@ -110,10 +102,11 @@ describe('PracticeQuestionService', () => {
       question: 'Is this true?',
       correctAnswer: 'true',
       isSolved: false,
+      userId,
     });
     repository.updateAfterSubmit.mockResolvedValue({});
 
-    const result = await service.submitAnswer('q-id', 'true');
+    const result = await service.submitAnswer('q-id', userId, 'true');
     expect(result.correct).toBe(true);
     expect(result.correctAnswer).toBe('true');
     expect(result.matchPercent).toBe(100);
@@ -125,6 +118,7 @@ describe('PracticeQuestionService', () => {
       question: 'Explain proofreading.',
       correctAnswer: 'Proofreading catches errors.',
       isSolved: false,
+      userId,
     });
     aiService.gradePracticeAnswer.mockResolvedValue({
       matchPercent: 92,
@@ -132,7 +126,7 @@ describe('PracticeQuestionService', () => {
     });
     repository.updateAfterSubmit.mockResolvedValue({});
 
-    const result = await service.submitAnswer('q-id', 'Proofreading helps catch mistakes.');
+    const result = await service.submitAnswer('q-id', userId, 'Proofreading helps catch mistakes.');
     expect(result.correct).toBe(true);
     expect(result.correctAnswer).toBe('Proofreading catches errors.');
     expect(result.matchPercent).toBe(92);
@@ -141,6 +135,8 @@ describe('PracticeQuestionService', () => {
 
   it('throws when review not found', async () => {
     aiReviewRepository.findById.mockResolvedValue(null);
-    await expect(service.generateForReview('missing')).rejects.toBeInstanceOf(NotFoundException);
+    await expect(service.generateForReview('missing', userId)).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
   });
 });

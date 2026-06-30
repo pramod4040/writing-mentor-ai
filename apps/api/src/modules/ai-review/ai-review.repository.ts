@@ -36,6 +36,24 @@ export class AiReviewRepository {
     return this.aiReviewModel.countDocuments().exec();
   }
 
+  countByUserId(userId: string) {
+    return this.aiReviewModel.countDocuments({ userId }).exec();
+  }
+
+  countByUserIdSince(userId: string, since: Date) {
+    return this.aiReviewModel
+      .countDocuments({ userId, createdAt: { $gte: since } })
+      .exec();
+  }
+
+  findOldestSince(userId: string, since: Date) {
+    return this.aiReviewModel
+      .findOne({ userId, createdAt: { $gte: since } })
+      .sort({ createdAt: 1 })
+      .select('createdAt')
+      .exec();
+  }
+
   create(data: CreateAiReviewData) {
     return this.aiReviewModel.create({
       contentId: new Types.ObjectId(data.contentId),

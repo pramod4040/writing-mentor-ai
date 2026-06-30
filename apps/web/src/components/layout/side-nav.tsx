@@ -2,21 +2,30 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, PenLine, Settings2, FlaskConical, Sparkles } from 'lucide-react';
+import { Home, PenLine, Settings2, Sparkles, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useUiStore } from '@/lib/stores/ui-store';
+import { useAuth } from '@/lib/hooks/use-auth';
 
-const navItems = [
+const mainNavItems = [
   { href: '/', label: 'Home', icon: Home },
   { href: '/write', label: 'Write', icon: PenLine },
   { href: '/ai-review', label: 'AI Reviews', icon: Sparkles },
+] as const;
+
+const adminNavItems = [
   { href: '/admin/mentor-types', label: 'Mentor Types', icon: Settings2 },
-  { href: '/examples', label: 'Examples', icon: FlaskConical },
+  { href: '/admin/users', label: 'Users', icon: Users },
 ] as const;
 
 export function SideNav() {
   const pathname = usePathname();
   const collapsed = useUiStore((s) => s.sidebarCollapsed);
+  const { user } = useAuth();
+
+  const navItems = user?.role === 'admin'
+    ? [...mainNavItems, ...adminNavItems]
+    : mainNavItems;
 
   return (
     <aside
@@ -29,7 +38,8 @@ export function SideNav() {
         {navItems.map(({ href, label, icon: Icon }) => {
           const active =
             pathname === href ||
-            (href === '/ai-review' && pathname.startsWith('/ai-review'));
+            (href === '/ai-review' && pathname.startsWith('/ai-review')) ||
+            (href.startsWith('/admin') && pathname.startsWith(href));
           return (
             <Link
               key={href}

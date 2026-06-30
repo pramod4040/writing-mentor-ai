@@ -1,12 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import {
-  DIFFICULTY_QUESTION_TYPES,
+  ALL_PRACTICE_QUESTION_TYPES,
   fuzzyMatchPercent,
   normalizeAnswer,
-  type PracticeDifficulty,
+  type PracticeQuestionType,
 } from '@writer-mentor-ai/shared/practice-question';
 import type { AiProvider, AiReviewInput } from '../ai-provider.interface';
-import { AiService } from '../ai.service';
 
 @Injectable()
 export class MockAiProvider implements AiProvider {
@@ -51,9 +50,15 @@ export class MockAiProvider implements AiProvider {
   }
 
   async generatePracticeQuestionsRaw(prompt: string): Promise<string> {
-    const difficultyMatch = prompt.match(/Difficulty level: (\w+)/);
-    const difficulty = (difficultyMatch?.[1] ?? 'intermediate') as PracticeDifficulty;
-    const types = DIFFICULTY_QUESTION_TYPES[difficulty];
+    const typesMatch = prompt.match(/Allowed question types ONLY: ([^\n]+)/);
+    const parsedTypes = typesMatch?.[1]
+      ?.split(',')
+      .map((t) => t.trim())
+      .filter((t): t is PracticeQuestionType =>
+        ALL_PRACTICE_QUESTION_TYPES.includes(t as PracticeQuestionType),
+      );
+    const types =
+      parsedTypes && parsedTypes.length > 0 ? parsedTypes : ALL_PRACTICE_QUESTION_TYPES.slice(0, 6);
 
     const templates: Record<string, object> = {
       mcq: {
@@ -77,22 +82,28 @@ export class MockAiProvider implements AiProvider {
       },
       sentence_correction: {
         questionType: 'sentence_correction',
-        question: 'Correct this sentence: "He go to school every day."',
-        correctAnswer: 'He goes to school every day.',
+        question: 'Correct this sentence: "He go to school."',
+        correctAnswer: 'He goes to school.',
         timer: 90,
       },
       error_detection: {
         questionType: 'error_detection',
-        question: 'Find and fix the error: "The informations in the email were unclear."',
-        correctAnswer: 'The information in the email was unclear.',
+        question: 'Find and fix the error: "The informations were unclear."',
+        correctAnswer: 'The information was unclear.',
         timer: 90,
+        metadata: { error: 'informations', correction: 'information' },
       },
       matching: {
         questionType: 'matching',
         question: 'Match the word to its meaning.',
         correctAnswer: JSON.stringify({ formal: 'polite and professional', concise: 'brief and clear' }),
         timer: 90,
-        metadata: { pairs: [{ left: 'formal', right: 'polite and professional' }, { left: 'concise', right: 'brief and clear' }] },
+        metadata: {
+          pairs: [
+            { left: 'formal', right: 'polite and professional' },
+            { left: 'concise', right: 'brief and clear' },
+          ],
+        },
       },
       sentence_transformation: {
         questionType: 'sentence_transformation',

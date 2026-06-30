@@ -1,5 +1,17 @@
 import type { PracticeDifficulty, PracticeQuestionType } from './practice-question.schema.js';
 
+export const ALL_PRACTICE_QUESTION_TYPES: PracticeQuestionType[] = [
+  'mcq',
+  'fill_blank',
+  'true_false',
+  'sentence_correction',
+  'error_detection',
+  'matching',
+  'sentence_transformation',
+  'cloze_passage',
+  'short_answer',
+];
+
 export const DIFFICULTY_QUESTION_TYPES: Record<PracticeDifficulty, PracticeQuestionType[]> = {
   beginner: ['mcq', 'fill_blank', 'true_false'],
   intermediate: ['sentence_correction', 'error_detection', 'matching'],
@@ -11,6 +23,11 @@ export function difficultyFromBand(band: number | null): PracticeDifficulty {
   if (band < 5.5) return 'beginner';
   if (band <= 6.5) return 'intermediate';
   return 'advanced';
+}
+
+export function pickRandomPracticeTypes(count = 6): PracticeQuestionType[] {
+  const shuffled = [...ALL_PRACTICE_QUESTION_TYPES].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, Math.min(count, shuffled.length));
 }
 
 export const STRUCTURED_PRACTICE_TYPES: PracticeQuestionType[] = ['mcq', 'true_false', 'matching'];

@@ -1,37 +1,29 @@
 services:
-  mongo:
-    image: mongo:7
-    volumes:
-      - mongo_data:/data/db
-
-  redis:
-    image: redis:7-alpine
-
   api:
     build:
       context: .
       dockerfile: apps/api/docker/Dockerfile
     environment:
-      MONGODB_URI: mongodb://mongo:27017/writer-mentor-ai
+      MONGODB_URI: ${MONGODB_URI}
       REDIS_URL: redis://redis:6379
-      JWT_SECRET: change-me-in-production
+      JWT_SECRET: ${JWT_SECRET}
       PORT: 3001
+      AI_PROVIDER: ${AI_PROVIDER}
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      GEMINI_MODEL: ${GEMINI_MODEL}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      ADMIN_EMAILS: ${ADMIN_EMAILS}
     ports:
       - '3001:3001'
-    depends_on:
-      - mongo
-      - redis
 
   web:
     build:
       context: .
       dockerfile: apps/web/docker/Dockerfile
     environment:
-      NEXT_PUBLIC_API_URL: http://api:3001
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+      NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_CLIENT_ID}
     ports:
-      - '3000:3000'
+      - '8000:8000'
     depends_on:
       - api
-
-volumes:
-  mongo_data:

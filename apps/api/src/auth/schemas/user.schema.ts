@@ -9,10 +9,25 @@ export class UserModel {
   email!: string;
 
   @Prop({ required: true })
-  passwordHash!: string;
+  name!: string;
 
-  @Prop({ default: 'user' })
+  @Prop()
+  passwordHash?: string;
+
+  @Prop({ unique: true, sparse: true })
+  googleId?: string;
+
+  @Prop()
+  image?: string;
+
+  @Prop({ default: 'user', enum: ['user', 'admin'] })
   role!: string;
+
+  @Prop()
+  defaultMentorTypeId?: string;
+
+  @Prop({ default: 3, min: 0, max: 1000 })
+  dailyAiReviewLimit!: number;
 }
 
 export const UserSchema = SchemaFactory.createForClass(UserModel);

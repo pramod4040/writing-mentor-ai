@@ -15,7 +15,24 @@ shared:
   packageName: "@writer-mentor-ai/shared"
 auth:
   strategy: jwt
+  dailyAiReviewLimit:
+    default: 3
+    windowHours: 24
+    adminEndpoint: PATCH /users/:id
+    quotaEndpoint: GET /contents/ai-review-quota
 features:
+  - name: auth
+    shared: packages/shared/src/auth
+    backend: apps/api/src/auth
+    frontend:
+      hooks:
+        - apps/web/src/lib/hooks/use-auth.ts
+        - apps/web/src/lib/hooks/use-users.ts
+      pages:
+        - apps/web/src/app/login
+        - apps/web/src/app/(app)/settings
+        - apps/web/src/app/(app)/admin/users
+    openapi: /auth, /users
   - name: _example
     shared: packages/shared/src/_example
     backend: apps/api/src/modules/_example

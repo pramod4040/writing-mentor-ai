@@ -11,13 +11,12 @@ import {
   type StructuredAiReview,
 } from '@writer-mentor-ai/shared/ai-review';
 import {
-  DIFFICULTY_QUESTION_TYPES,
   generatedPracticeQuestionsOutputSchema,
   JSON_PRACTICE_ANSWER_GRADE_INSTRUCTION,
   JSON_PRACTICE_QUESTIONS_INSTRUCTION,
   practiceAnswerGradeSchema,
   type PracticeAnswerGrade,
-  type PracticeDifficulty,
+  type PracticeQuestionType,
   type GeneratedPracticeQuestion,
 } from '@writer-mentor-ai/shared/practice-question';
 import type {
@@ -76,13 +75,9 @@ export class AiService {
   }
 
   async generatePracticeQuestions(
-    input: Omit<AiPracticeQuestionsInput, 'allowedTypes'> & { difficulty: PracticeDifficulty },
+    input: AiPracticeQuestionsInput,
   ): Promise<GeneratedPracticeQuestion[]> {
-    const allowedTypes = DIFFICULTY_QUESTION_TYPES[input.difficulty];
-    const prompt = AiService.buildPracticeQuestionsPrompt({
-      ...input,
-      allowedTypes,
-    });
+    const prompt = AiService.buildPracticeQuestionsPrompt(input);
     try {
       const raw = await this.provider.generatePracticeQuestionsRaw(prompt);
       const jsonText = extractJson(raw);
@@ -142,16 +137,14 @@ export class AiService {
   }
 
   static buildPracticeQuestionsPrompt(input: AiPracticeQuestionsInput): string {
-    return `You are an expert writing coach generating targeted practice questions.
-
-Practice prompt context:
+    return `
 ${input.practicePrompt}
 
-AI review context (JSON):
-${input.aiGeneratedReview}
+Mistakes User had made:
+${input.mistakes}
 
-Difficulty level: ${input.difficulty}
-Allowed question types ONLY: ${input.allowedTypes.join(', ')}
+Feedback given to the user:
+${input.feedback}
 
 ${JSON_PRACTICE_QUESTIONS_INSTRUCTION}`;
   }

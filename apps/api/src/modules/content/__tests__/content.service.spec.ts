@@ -1,13 +1,14 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ConfigService } from '@nestjs/config';
+import { ForbiddenException } from '@nestjs/common';
 import { ContentService } from '../content.service';
 import { ContentRepository } from '../content.repository';
 
 describe('ContentService', () => {
   let service: ContentService;
+  const userId = 'user-1';
   const repository = {
-    findAll: jest.fn(),
-    count: jest.fn(),
+    findAllByUserId: jest.fn(),
+    countByUserId: jest.fn(),
     findById: jest.fn(),
     create: jest.fn(),
     update: jest.fn(),
@@ -20,10 +21,6 @@ describe('ContentService', () => {
       providers: [
         ContentService,
         { provide: ContentRepository, useValue: repository },
-        {
-          provide: ConfigService,
-          useValue: { getOrThrow: jest.fn().mockReturnValue('demo-user') },
-        },
       ],
     }).compile();
     service = module.get(ContentService);
@@ -38,25 +35,35 @@ describe('ContentService', () => {
       question: 'Describe your accommodation',
       feedback: null,
       textContent: 'Hello world',
-      userId: 'demo-user',
+      userId,
       aiReviewedTimes: 0,
       wordCount: 2,
       createdAt: now,
       updatedAt: now,
     });
-    const result = await service.findOne('507f1f77bcf86cd799439011');
+    const result = await service.findOne('507f1f77bcf86cd799439011', userId);
     expect(result).toEqual({
       id: '507f1f77bcf86cd799439011',
       shortName: 'Essay 1',
       question: 'Describe your accommodation',
       feedback: null,
       textContent: 'Hello world',
-      userId: 'demo-user',
+      userId,
       aiReviewedTimes: 0,
       wordCount: 2,
       createdAt: now.toISOString(),
       updatedAt: now.toISOString(),
     });
+  });
+
+  it('rejects access to another user content', async () => {
+    repository.findById.mockResolvedValue({
+      _id: { toString: () => '507f1f77bcf86cd799439011' },
+      userId: 'other-user',
+    });
+    await expect(service.findOne('507f1f77bcf86cd799439011', userId)).rejects.toBeInstanceOf(
+      ForbiddenException,
+    );
   });
 
   it('computes word count on create', async () => {
@@ -67,19 +74,19 @@ describe('ContentService', () => {
       question: 'Task',
       feedback: null,
       textContent: 'one two three',
-      userId: 'demo-user',
+      userId,
       aiReviewedTimes: 0,
       wordCount: 3,
       createdAt: now,
       updatedAt: now,
     });
-    const result = await service.create({
+    const result = await service.create(userId, {
       shortName: 'Essay 1',
       question: 'Task',
       textContent: 'one two three',
     });
     expect(repository.create).toHaveBeenCalledWith(
-      expect.objectContaining({ wordCount: 3, userId: 'demo-user' }),
+      expect.objectContaining({ wordCount: 3, userId }),
     );
     expect(result.wordCount).toBe(3);
   });

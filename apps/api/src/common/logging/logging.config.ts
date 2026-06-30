@@ -1,3 +1,5 @@
+import { isAbsolute, join, dirname } from 'path';
+import { mkdirSync } from 'fs';
 import type { LogLevel } from './log-level';
 import type { LogTransport } from './log-transport.interface';
 import { CompositeLogTransport } from './transports/composite-log-transport';
@@ -10,11 +12,29 @@ export type LogConfig = {
   filePath: string;
 };
 
+/** Resolve log file to apps/api/logs when running from monorepo root via turbo. */
+export function resolveLogFilePath(filePath: string): string {
+  if (isAbsolute(filePath)) return filePath;
+  const cwd = process.cwd();
+  const normalized = cwd.replace(/\\/g, '/');
+  const apiDir =
+    normalized.endsWith('/apps/api') || normalized.endsWith('/api')
+      ? cwd
+      : join(cwd, 'apps/api');
+  return join(apiDir, filePath);
+}
+
+export function ensureLogFileDirectory(filePath: string): void {
+  mkdirSync(dirname(filePath), { recursive: true });
+}
+
 export function createLogTransports(config: LogConfig): LogTransport {
+  const resolvedPath = resolveLogFilePath(config.filePath);
   const transports: LogTransport[] = [];
 
   if (config.output === 'file' || config.output === 'both') {
-    transports.push(new FileLogTransport(config.filePath));
+    ensureLogFileDirectory(resolvedPath);
+    transports.push(new FileLogTransport(resolvedPath));
   }
   if (config.output === 'console' || config.output === 'both') {
     transports.push(new ConsoleLogTransport());
@@ -35,11 +55,13 @@ export type PinoLogConfig = {
 };
 
 export function buildPinoHttpOptions(config: PinoLogConfig): Record<string, unknown> {
+  const logFilePath = resolveLogFilePath(config.filePath);
   const streams: StreamEntry[] = [];
 
   if (config.output === 'file' || config.output === 'both') {
+    ensureLogFileDirectory(logFilePath);
     streams.push({
-      stream: pino.destination({ dest: config.filePath, sync: false }),
+      stream: pino.destination({ dest: logFilePath, sync: false }),
     });
   }
 

@@ -13,6 +13,8 @@ import { paginationQuerySchema } from '@writer-mentor-ai/shared/common';
 import { ContentService } from './content.service';
 import { CreateContentDto, UpdateContentDto, CreateAiReviewDto, SaveAndReviewDto } from './dto/content.dto';
 import { AiReviewService } from '../ai-review/ai-review.service';
+import { CurrentUser } from '@/common/decorators/current-user.decorator';
+import type { AuthUser } from '@/auth/auth.mapper';
 
 @ApiTags('contents')
 @Controller('contents')
@@ -24,45 +26,59 @@ export class ContentController {
 
   @Get()
   @ApiOperation({ summary: 'List contents' })
-  findAll(@Query() query: Record<string, string>) {
+  findAll(@CurrentUser() user: AuthUser, @Query() query: Record<string, string>) {
     const parsed = paginationQuerySchema.parse(query);
-    return this.service.findAll(parsed);
+    return this.service.findAll(user.id, parsed);
   }
 
   @Post('save-and-review')
   @ApiOperation({ summary: 'Save content and generate AI review' })
-  saveAndReview(@Body() dto: SaveAndReviewDto) {
-    return this.aiReviewService.saveAndReview(dto);
+  saveAndReview(@CurrentUser() user: AuthUser, @Body() dto: SaveAndReviewDto) {
+    return this.aiReviewService.saveAndReview(user.id, dto);
+  }
+
+  @Get('ai-review-quota')
+  @ApiOperation({ summary: 'Get current user daily AI review quota' })
+  getAiReviewQuota(@CurrentUser() user: AuthUser) {
+    return this.aiReviewService.getQuota(user.id);
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get content by id' })
-  findOne(@Param('id') id: string) {
-    return this.service.findOne(id);
+  findOne(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    return this.service.findOne(id, user.id);
   }
 
   @Post()
   @ApiOperation({ summary: 'Create content' })
-  create(@Body() dto: CreateContentDto) {
-    return this.service.create(dto);
+  create(@CurrentUser() user: AuthUser, @Body() dto: CreateContentDto) {
+    return this.service.create(user.id, dto);
   }
 
   @Patch(':id')
   @ApiOperation({ summary: 'Update content' })
-  update(@Param('id') id: string, @Body() dto: UpdateContentDto) {
-    return this.service.update(id, dto);
+  update(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @Body() dto: UpdateContentDto,
+  ) {
+    return this.service.update(id, user.id, dto);
   }
 
   @Delete(':id')
   @ApiOperation({ summary: 'Delete content' })
-  remove(@Param('id') id: string) {
-    return this.service.remove(id);
+  remove(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    return this.service.remove(id, user.id);
   }
 
   @Post(':id/ai-review')
   @ApiOperation({ summary: 'Generate AI review for content' })
-  createAiReview(@Param('id') id: string, @Body() dto: CreateAiReviewDto) {
-    return this.aiReviewService.generateReview(id, dto.mentorTypeId, {
+  createAiReview(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @Body() dto: CreateAiReviewDto,
+  ) {
+    return this.aiReviewService.generateReview(id, dto.mentorTypeId, user.id, {
       question: dto.question,
       textContent: dto.textContent,
     });
@@ -70,7 +86,7 @@ export class ContentController {
 
   @Get(':id/ai-reviews')
   @ApiOperation({ summary: 'List AI reviews for content' })
-  findAiReviews(@Param('id') id: string) {
-    return this.aiReviewService.findByContentId(id);
+  findAiReviews(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    return this.aiReviewService.findByContentId(id, user.id);
   }
 }

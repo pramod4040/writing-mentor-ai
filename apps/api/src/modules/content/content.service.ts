@@ -1,5 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { Injectable, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { countWords } from '@writer-mentor-ai/shared/common';
 import type {
   CreateContentInput,
@@ -11,20 +10,13 @@ import { ContentRepository, toContentResponse } from './content.repository';
 
 @Injectable()
 export class ContentService {
-  constructor(
-    private readonly repository: ContentRepository,
-    private readonly config: ConfigService,
-  ) {}
+  constructor(private readonly repository: ContentRepository) {}
 
-  private getDefaultUserId(): string {
-    return this.config.getOrThrow<string>('DEFAULT_USER_ID');
-  }
-
-  async findAll(query: PaginationQuery) {
+  async findAll(userId: string, query: PaginationQuery) {
     const skip = (query.page - 1) * query.limit;
     const [items, total] = await Promise.all([
-      this.repository.findAll(skip, query.limit),
-      this.repository.count(),
+      this.repository.findAllByUserId(userId, skip, query.limit),
+      this.repository.countByUserId(userId),
     ]);
     return {
       data: items.map(toContentResponse),
@@ -35,27 +27,32 @@ export class ContentService {
     };
   }
 
-  async findOne(id: string): Promise<ContentResponse> {
+  async findOne(id: string, userId: string): Promise<ContentResponse> {
     const item = await this.repository.findById(id);
     if (!item) throw new NotFoundException(`Content ${id} not found`);
+    if (item.userId !== userId) throw new ForbiddenException();
     return toContentResponse(item);
   }
 
-  async create(input: CreateContentInput): Promise<ContentResponse> {
+  async create(userId: string, input: CreateContentInput): Promise<ContentResponse> {
     const item = await this.repository.create({
       shortName: input.shortName,
       question: input.question,
       feedback: input.feedback ?? undefined,
       textContent: input.textContent,
-      userId: this.getDefaultUserId(),
+      userId,
       aiReviewedTimes: 0,
       wordCount: countWords(input.textContent),
     });
     return toContentResponse(item);
   }
 
-  async update(id: string, input: UpdateContentInput): Promise<ContentResponse> {
-    await this.findOne(id);
+  async update(
+    id: string,
+    userId: string,
+    input: UpdateContentInput,
+  ): Promise<ContentResponse> {
+    await this.findOne(id, userId);
     const updateData: Record<string, unknown> = { ...input };
     if (input.feedback === null) {
       updateData.feedback = undefined;
@@ -68,12 +65,17 @@ export class ContentService {
     return toContentResponse(item);
   }
 
-  async remove(id: string): Promise<void> {
-    await this.findOne(id);
+  async remove(id: string, userId: string): Promise<void> {
+    await this.findOne(id, userId);
     await this.repository.delete(id);
   }
 
-  async recordAiReview(id: string, feedback: string): Promise<ContentResponse> {
+  async recordAiReview(
+    id: string,
+    userId: string,
+    feedback: string,
+  ): Promise<ContentResponse> {
+    await this.findOne(id, userId);
     const item = await this.repository.incrementAiReviewedTimes(id, feedback);
     if (!item) throw new NotFoundException(`Content ${id} not found`);
     return toContentResponse(item);

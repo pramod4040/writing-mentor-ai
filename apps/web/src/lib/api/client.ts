@@ -1,4 +1,5 @@
 import { env } from '@/lib/env';
+import { getAccessToken } from '@/lib/auth/token';
 import type { ApiError } from '@writer-mentor-ai/shared/common';
 
 export class ApiClientError extends Error {
@@ -6,6 +7,7 @@ export class ApiClientError extends Error {
     public statusCode: number,
     message: string,
     public errors?: ApiError['errors'],
+    public data?: Record<string, unknown>,
   ) {
     super(message);
     this.name = 'ApiClientError';
@@ -34,12 +36,18 @@ export async function apiFetch<T>(
   options: RequestInit = {},
 ): Promise<T> {
   const url = `${env.NEXT_PUBLIC_API_URL}/api${path}`;
+  const token = getAccessToken();
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...(options.headers as Record<string, string> | undefined),
+  };
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
   const res = await fetch(url, {
     ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
+    headers,
   });
 
   if (!res.ok) {
@@ -48,6 +56,7 @@ export async function apiFetch<T>(
       res.status,
       normalizeApiMessage(body, res.statusText),
       body.errors,
+      body,
     );
   }
 

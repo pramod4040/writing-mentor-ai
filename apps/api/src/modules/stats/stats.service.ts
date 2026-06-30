@@ -10,10 +10,10 @@ export class StatsService {
     private readonly aiReviewRepository: AiReviewRepository,
   ) {}
 
-  async getStats(): Promise<StatsResponse> {
+  async getStats(userId: string): Promise<StatsResponse> {
     const [contentCount, aiReviewCount] = await Promise.all([
-      this.contentRepository.count(),
-      this.aiReviewRepository.count(),
+      this.contentRepository.countByUserId(userId),
+      this.aiReviewRepository.countByUserId(userId),
     ]);
     return { contentCount, aiReviewCount };
   }

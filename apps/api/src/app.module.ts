@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { LoggerModule } from 'nestjs-pino';
 import { AppConfigModule } from './config/config.module';
@@ -15,6 +16,7 @@ import { AiReviewModule } from './modules/ai-review/ai-review.module';
 import { AiModule } from './modules/ai/ai.module';
 import { StatsModule } from './modules/stats/stats.module';
 import { PracticeQuestionModule } from './modules/practice-question/practice-question.module';
+import { JwtAuthGuard, RolesGuard } from './common/guards/auth.guard';
 
 @Module({
   imports: [
@@ -43,6 +45,10 @@ import { PracticeQuestionModule } from './modules/practice-question/practice-que
     AiReviewModule,
     StatsModule,
     PracticeQuestionModule,
+  ],
+  providers: [
+    { provide: APP_GUARD, useClass: JwtAuthGuard },
+    { provide: APP_GUARD, useClass: RolesGuard },
   ],
 })
 export class AppModule {}

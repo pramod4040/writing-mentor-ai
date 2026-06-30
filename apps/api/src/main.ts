@@ -9,9 +9,13 @@ import { AppLoggerService } from './common/logging/app-logger.service';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
   app.useLogger(app.get(Logger));
-  app.useGlobalFilters(new AllExceptionsFilter(app.get(AppLoggerService)));
+  const appLogger = app.get(AppLoggerService);
+  app.useGlobalFilters(new AllExceptionsFilter(appLogger));
   app.setGlobalPrefix('api');
-  app.enableCors({ origin: process.env.CORS_ORIGIN ?? 'http://localhost:3000' });
+  app.enableCors({
+    origin: process.env.CORS_ORIGIN ?? 'http://localhost:3000',
+    credentials: true,
+  });
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -31,6 +35,10 @@ async function bootstrap() {
 
   const port = process.env.PORT ?? 3001;
   await app.listen(port);
+  appLogger.info('API server listening', 'Bootstrap', {
+    port: Number(port),
+    logFilePath: appLogger.resolvedLogFilePath,
+  });
 }
 
 bootstrap();

@@ -10,6 +10,7 @@ import {
 import { AiReviewModule } from '../ai-review/ai-review.module';
 import { MentorTypeModule } from '../mentor-type/mentor-type.module';
 import { AiModule } from '../ai/ai.module';
+import { ContentModule } from '../content/content.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { AiModule } from '../ai/ai.module';
     AiReviewModule,
     MentorTypeModule,
     AiModule,
+    ContentModule
   ],
   controllers: [PracticeQuestionController],
   providers: [PracticeQuestionService, PracticeQuestionRepository],

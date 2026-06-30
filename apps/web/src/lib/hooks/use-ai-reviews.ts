@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api/client';
 import type { AiReviewResponse } from '@writer-mentor-ai/shared/ai-review';
 import type { SaveAndReviewInput, SaveAndReviewResponse } from '@writer-mentor-ai/shared/content';
+import { AI_REVIEW_QUOTA_KEY } from '@/lib/hooks/use-ai-review-quota';
 
 const KEYS = {
   all: ['ai-reviews'] as const,
@@ -39,6 +40,7 @@ export function useCreateAiReview(contentId: string) {
       qc.invalidateQueries({ queryKey: KEYS.byContent(contentId) });
       qc.invalidateQueries({ queryKey: ['contents'] });
       qc.invalidateQueries({ queryKey: ['stats'] });
+      qc.invalidateQueries({ queryKey: AI_REVIEW_QUOTA_KEY });
     },
   });
 }
@@ -55,6 +57,7 @@ export function useSaveAndReview() {
       qc.invalidateQueries({ queryKey: KEYS.byContent(data.content.id) });
       qc.invalidateQueries({ queryKey: ['contents'] });
       qc.invalidateQueries({ queryKey: ['stats'] });
+      qc.invalidateQueries({ queryKey: AI_REVIEW_QUOTA_KEY });
     },
   });
 }

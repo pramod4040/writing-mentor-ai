@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { difficultyFromBand, DIFFICULTY_QUESTION_TYPES } from './difficulty.js';
+import {
+  ALL_PRACTICE_QUESTION_TYPES,
+  difficultyFromBand,
+  DIFFICULTY_QUESTION_TYPES,
+  pickRandomPracticeTypes,
+} from './difficulty.js';
 
 describe('difficultyFromBand', () => {
   it('maps low band to beginner', () => {
@@ -23,5 +28,25 @@ describe('DIFFICULTY_QUESTION_TYPES', () => {
     expect(DIFFICULTY_QUESTION_TYPES.beginner).toContain('mcq');
     expect(DIFFICULTY_QUESTION_TYPES.intermediate).toContain('matching');
     expect(DIFFICULTY_QUESTION_TYPES.advanced).toContain('short_answer');
+  });
+});
+
+describe('ALL_PRACTICE_QUESTION_TYPES', () => {
+  it('includes all 9 question types', () => {
+    expect(ALL_PRACTICE_QUESTION_TYPES).toHaveLength(9);
+    expect(ALL_PRACTICE_QUESTION_TYPES).toContain('error_detection');
+  });
+});
+
+describe('pickRandomPracticeTypes', () => {
+  it('returns requested count of unique types', () => {
+    const types = pickRandomPracticeTypes(6);
+    expect(types).toHaveLength(6);
+    expect(new Set(types).size).toBe(6);
+    types.forEach((t) => expect(ALL_PRACTICE_QUESTION_TYPES).toContain(t));
+  });
+
+  it('caps at available type count', () => {
+    expect(pickRandomPracticeTypes(20)).toHaveLength(9);
   });
 });

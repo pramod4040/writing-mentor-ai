@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { MentorTypeService } from '../mentor-type.service';
 import { MentorTypeRepository } from '../mentor-type.repository';
+import { AppLoggerService } from '@/common/logging/app-logger.service';
 
 describe('MentorTypeService', () => {
   let service: MentorTypeService;
@@ -12,12 +13,14 @@ describe('MentorTypeService', () => {
     update: jest.fn(),
     delete: jest.fn(),
   };
+  const logger = { info: jest.fn(), logError: jest.fn(), error: jest.fn() };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         MentorTypeService,
         { provide: MentorTypeRepository, useValue: repository },
+        { provide: AppLoggerService, useValue: logger },
       ],
     }).compile();
     service = module.get(MentorTypeService);

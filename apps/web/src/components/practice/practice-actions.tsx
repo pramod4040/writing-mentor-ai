@@ -29,7 +29,7 @@ export function PracticeActions({ contentId, review }: PracticeActionsProps) {
       </p>
       {generate.isSuccess && (
         <p className="mt-2 text-sm text-green-700 dark:text-green-400">
-          Generated {generate.data?.questions.length ?? 0} questions.
+          Generated {generate.data?.questions.length ?? 0} mixed-type questions.
         </p>
       )}
       {generate.isError && (
